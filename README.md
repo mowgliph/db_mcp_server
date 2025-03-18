@@ -29,16 +29,9 @@ A Model Context Protocol (MCP) server that provides tools for connecting to and 
 ```bash
 # Clone the repository
 git clone <repository-url>
-cd db-mcp-server
 
 # Install the package
 pip install -e .
-```
-
-Or install directly from PyPI:
-
-```bash
-pip install db-mcp-server
 ```
 
 ## Configuration
