@@ -7,7 +7,6 @@ from typing import Dict, Any, Optional
 from http.server import HTTPServer, BaseHTTPRequestHandler
 
 from .server import DatabaseMcpServer
-from mcp_sdk import Server
 
 # Configure logging
 logging.basicConfig(
@@ -21,6 +20,55 @@ class MCPHttpHandler(BaseHTTPRequestHandler):
     """HTTP request handler for MCP requests."""
     
     db_server = None  # Will be set by the main function
+    
+    def do_GET(self):
+        """Handle GET requests."""
+        try:
+            if self.path == '/':
+                # Return basic server info
+                info = {
+                    'name': 'Database MCP Server',
+                    'version': '1.0.0',
+                    'description': 'A Model Context Protocol server for database operations',
+                    'endpoints': {
+                        '/': 'Server information (GET)',
+                        '/list_tools': 'List available tools (GET/POST)',
+                        '/call_tool': 'Execute a tool (POST)'
+                    }
+                }
+                self._send_response(200, info)
+            
+            elif self.path == '/list_tools':
+                # Return available tools (same as POST)
+                tools = {
+                    'add_connection': {'description': 'Add a new database connection'},
+                    'test_connection': {'description': 'Test a database connection'},
+                    'list_connections': {'description': 'List all database connections'},
+                    'remove_connection': {'description': 'Remove a database connection'},
+                    'execute_query': {'description': 'Execute a SQL query'},
+                    'get_records': {'description': 'Get records from a table'},
+                    'insert_record': {'description': 'Insert a record into a table'},
+                    'update_record': {'description': 'Update records in a table'},
+                    'delete_record': {'description': 'Delete records from a table'},
+                    'list_tables': {'description': 'List all tables in a database'},
+                    'get_table_schema': {'description': 'Get the schema for a table'},
+                    'create_table': {'description': 'Create a new table'},
+                    'drop_table': {'description': 'Drop a table'},
+                    'create_index': {'description': 'Create an index on a table'},
+                    'drop_index': {'description': 'Drop an index'},
+                    'alter_table': {'description': 'Alter a table structure'},
+                    'begin_transaction': {'description': 'Begin a transaction'},
+                    'commit_transaction': {'description': 'Commit a transaction'},
+                    'rollback_transaction': {'description': 'Rollback a transaction'}
+                }
+                self._send_response(200, {'tools': tools})
+            
+            else:
+                self._send_error(404, f"Endpoint '{self.path}' not found")
+        
+        except Exception as e:
+            logger.exception("Error processing GET request")
+            self._send_error(500, f"Internal server error: {str(e)}")
     
     def do_POST(self):
         """Handle POST requests."""
@@ -57,13 +105,28 @@ class MCPHttpHandler(BaseHTTPRequestHandler):
                     self._send_error(404, f"Tool '{tool_name}' not found")
             
             elif self.path == '/list_tools':
-                # Get tool definitions from the server
-                tools = {}
-                for name, tool in self.db_server.server._meta['capabilities']['tools'].items():
-                    tools[name] = {
-                        'description': tool.get('description', ''),
-                        'input_schema': tool.get('input_schema', {})
-                    }
+                # Return available tools
+                tools = {
+                    'add_connection': {'description': 'Add a new database connection'},
+                    'test_connection': {'description': 'Test a database connection'},
+                    'list_connections': {'description': 'List all database connections'},
+                    'remove_connection': {'description': 'Remove a database connection'},
+                    'execute_query': {'description': 'Execute a SQL query'},
+                    'get_records': {'description': 'Get records from a table'},
+                    'insert_record': {'description': 'Insert a record into a table'},
+                    'update_record': {'description': 'Update records in a table'},
+                    'delete_record': {'description': 'Delete records from a table'},
+                    'list_tables': {'description': 'List all tables in a database'},
+                    'get_table_schema': {'description': 'Get the schema for a table'},
+                    'create_table': {'description': 'Create a new table'},
+                    'drop_table': {'description': 'Drop a table'},
+                    'create_index': {'description': 'Create an index on a table'},
+                    'drop_index': {'description': 'Drop an index'},
+                    'alter_table': {'description': 'Alter a table structure'},
+                    'begin_transaction': {'description': 'Begin a transaction'},
+                    'commit_transaction': {'description': 'Commit a transaction'},
+                    'rollback_transaction': {'description': 'Rollback a transaction'}
+                }
                 
                 self._send_response(200, {'tools': tools})
             
@@ -107,24 +170,8 @@ def run_web_server(host: str = 'localhost', port: int = 8000,
         format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
     )
     
-    # Create MCP server
-    sdk_server = Server(
-        {
-            "name": "db-mcp-server",
-            "version": "0.1.0"
-        },
-        {
-            "capabilities": {
-                "tools": {
-                    # All tools are defined in __main__.py
-                    # We're reusing that definition
-                    # (The tools will be populated when DatabaseMcpServer is initialized)
-                }
-            }
-        }
-    )
-    
-    db_server = DatabaseMcpServer(sdk_server)
+    # Create database server
+    db_server = DatabaseMcpServer()
     MCPHttpHandler.db_server = db_server
     
     # Create HTTP server

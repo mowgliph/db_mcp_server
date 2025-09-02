@@ -1,6 +1,6 @@
 # Database MCP Server
 
-A Model Context Protocol (MCP) server that provides tools for connecting to and interacting with various database systems.
+A Model Context Protocol (MCP) server powered by **FastMCP** that provides tools for connecting to and interacting with various database systems.
 
 ## Features
 
@@ -17,6 +17,7 @@ A Model Context Protocol (MCP) server that provides tools for connecting to and 
 
 - Python 3.8 or higher
 - Required Python packages (installed automatically with pip):
+  - **FastMCP** (for MCP protocol handling)
   - SQLAlchemy
   - Various database drivers, depending on which databases you want to use:
     - SQLite (included with Python)
@@ -30,8 +31,10 @@ A Model Context Protocol (MCP) server that provides tools for connecting to and 
 # Clone the repository
 git clone <repository-url>
 
-# Install the package
+# Install the package and dependencies
 pip install -e .
+
+# FastMCP will be installed automatically via requirements.txt
 ```
 
 ## Configuration
@@ -68,10 +71,10 @@ The server can be configured using environment variables, a configuration file, 
 
 ### Running the Server
 
-#### As an MCP Server for Claude
+#### As an MCP Server for Claude (using FastMCP)
 
 ```bash
-# Run with default settings
+# Run with default settings (powered by FastMCP)
 python -m db_mcp_server
 
 # Specify a configuration file
@@ -190,6 +193,13 @@ python -m db_mcp_server.web_server --config /path/to/config.json --log-level DEB
 ```
 
 ## Development
+
+### Technology Stack
+
+This server is built using:
+- **FastMCP**: Modern, high-performance MCP protocol implementation
+- **SQLAlchemy**: Database abstraction layer
+- **Python 3.8+**: Core runtime
 
 ### Running Tests
 

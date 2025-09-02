@@ -23,48 +23,12 @@ logger = logging.getLogger('db-mcp-server')
 class DatabaseMcpServer:
     """MCP Server for database operations."""
     
-    def __init__(self, sdk_server):
-        """Initialize the Database MCP Server.
-        
-        Args:
-            sdk_server: The MCP SDK Server instance.
-        """
-        self.server = sdk_server
+    def __init__(self):
+        """Initialize the Database MCP Server."""
         self.connections = {}  # Connection cache
         self.config = load_config()
-        
-        # Register request handlers
-        self._register_handlers()
     
-    def _register_handlers(self):
-        """Register all MCP request handlers."""
-        # Connection Management
-        self.server.set_tool_handler("add_connection", self.handle_add_connection)
-        self.server.set_tool_handler("test_connection", self.handle_test_connection)
-        self.server.set_tool_handler("list_connections", self.handle_list_connections)
-        self.server.set_tool_handler("remove_connection", self.handle_remove_connection)
-        
-        # Query Execution
-        self.server.set_tool_handler("execute_query", self.handle_execute_query)
-        self.server.set_tool_handler("get_records", self.handle_get_records)
-        self.server.set_tool_handler("insert_record", self.handle_insert_record)
-        self.server.set_tool_handler("update_record", self.handle_update_record)
-        self.server.set_tool_handler("delete_record", self.handle_delete_record)
-        
-        # Schema Management
-        self.server.set_tool_handler("list_tables", self.handle_list_tables)
-        self.server.set_tool_handler("get_table_schema", self.handle_get_table_schema)
-        self.server.set_tool_handler("create_table", self.handle_create_table)
-        self.server.set_tool_handler("drop_table", self.handle_drop_table)
-        self.server.set_tool_handler("create_index", self.handle_create_index)
-        self.server.set_tool_handler("drop_index", self.handle_drop_index)
-        self.server.set_tool_handler("alter_table", self.handle_alter_table)
-        
-        # Transaction Management
-        self.server.set_tool_handler("begin_transaction", self.handle_begin_transaction)
-        self.server.set_tool_handler("commit_transaction", self.handle_commit_transaction)
-        self.server.set_tool_handler("rollback_transaction", self.handle_rollback_transaction)
-    
+
     def _get_connection(self, connection_id: str):
         """Get a database connection by ID.
         

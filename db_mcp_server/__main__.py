@@ -8,11 +8,10 @@ import logging
 from dotenv import load_dotenv
 
 try:
-    from mcp_sdk import Server
-    from mcp_sdk.server.stdio import StdioServerTransport
+    from fastmcp import FastMCP
 except ImportError:
-    print("Error: MCP SDK not found. Please install it with:")
-    print("pip install modelcontextprotocol")
+    print("Error: FastMCP not found. Please install it with:")
+    print("pip install fastmcp")
     sys.exit(1)
 
 from .server import DatabaseMcpServer
@@ -50,405 +49,196 @@ def main():
     
     # Create and initialize the MCP server
     try:
-        # Initialize the MCP SDK Server
-        sdk_server = Server(
-            {
-                "name": "db-mcp-server",
-                "version": "0.1.0"
-            },
-            {
-                "capabilities": {
-                    "tools": {
-                        # Connection Management
-                        "add_connection": {
-                            "description": "Add a new database connection",
-                            "input_schema": {
-                                "type": "object",
-                                "properties": {
-                                    "connection_id": {
-                                        "type": "string",
-                                        "description": "Identifier for the connection"
-                                    },
-                                    "type": {
-                                        "type": "string",
-                                        "description": "Database type (sqlite, postgres, mysql, mssql)"
-                                    },
-                                    "config_path": {
-                                        "type": "string",
-                                        "description": "Path to save connection configuration (optional)"
-                                    }
-                                },
-                                "required": ["connection_id", "type"]
-                            }
-                        },
-                        "test_connection": {
-                            "description": "Test a database connection",
-                            "input_schema": {
-                                "type": "object",
-                                "properties": {
-                                    "connection_id": {
-                                        "type": "string",
-                                        "description": "Identifier for the connection"
-                                    }
-                                },
-                                "required": ["connection_id"]
-                            }
-                        },
-                        "list_connections": {
-                            "description": "List all database connections",
-                            "input_schema": {
-                                "type": "object",
-                                "properties": {}
-                            }
-                        },
-                        "remove_connection": {
-                            "description": "Remove a database connection",
-                            "input_schema": {
-                                "type": "object",
-                                "properties": {
-                                    "connection_id": {
-                                        "type": "string",
-                                        "description": "Identifier for the connection"
-                                    },
-                                    "config_path": {
-                                        "type": "string",
-                                        "description": "Path to save connection configuration (optional)"
-                                    }
-                                },
-                                "required": ["connection_id"]
-                            }
-                        },
-                        
-                        # Query Execution
-                        "execute_query": {
-                            "description": "Execute a SQL query",
-                            "input_schema": {
-                                "type": "object",
-                                "properties": {
-                                    "connection_id": {
-                                        "type": "string",
-                                        "description": "Identifier for the connection"
-                                    },
-                                    "query": {
-                                        "type": "string",
-                                        "description": "SQL query to execute"
-                                    },
-                                    "params": {
-                                        "type": "array",
-                                        "description": "Query parameters (optional)"
-                                    }
-                                },
-                                "required": ["connection_id", "query"]
-                            }
-                        },
-                        "get_records": {
-                            "description": "Get records from a table",
-                            "input_schema": {
-                                "type": "object",
-                                "properties": {
-                                    "connection_id": {
-                                        "type": "string",
-                                        "description": "Identifier for the connection"
-                                    },
-                                    "table": {
-                                        "type": "string",
-                                        "description": "Table name"
-                                    },
-                                    "columns": {
-                                        "type": "array",
-                                        "description": "Columns to retrieve (optional)"
-                                    },
-                                    "where": {
-                                        "type": "object",
-                                        "description": "Where conditions (optional)"
-                                    },
-                                    "order_by": {
-                                        "type": "array",
-                                        "description": "Order by columns (optional)"
-                                    },
-                                    "limit": {
-                                        "type": "integer",
-                                        "description": "Maximum number of records (optional)"
-                                    },
-                                    "offset": {
-                                        "type": "integer",
-                                        "description": "Number of records to skip (optional)"
-                                    }
-                                },
-                                "required": ["connection_id", "table"]
-                            }
-                        },
-                        "insert_record": {
-                            "description": "Insert a record into a table",
-                            "input_schema": {
-                                "type": "object",
-                                "properties": {
-                                    "connection_id": {
-                                        "type": "string",
-                                        "description": "Identifier for the connection"
-                                    },
-                                    "table": {
-                                        "type": "string",
-                                        "description": "Table name"
-                                    },
-                                    "data": {
-                                        "type": "object",
-                                        "description": "Record data to insert"
-                                    }
-                                },
-                                "required": ["connection_id", "table", "data"]
-                            }
-                        },
-                        "update_record": {
-                            "description": "Update records in a table",
-                            "input_schema": {
-                                "type": "object",
-                                "properties": {
-                                    "connection_id": {
-                                        "type": "string",
-                                        "description": "Identifier for the connection"
-                                    },
-                                    "table": {
-                                        "type": "string",
-                                        "description": "Table name"
-                                    },
-                                    "data": {
-                                        "type": "object",
-                                        "description": "Data to update"
-                                    },
-                                    "where": {
-                                        "type": "object",
-                                        "description": "Where conditions"
-                                    }
-                                },
-                                "required": ["connection_id", "table", "data", "where"]
-                            }
-                        },
-                        "delete_record": {
-                            "description": "Delete records from a table",
-                            "input_schema": {
-                                "type": "object",
-                                "properties": {
-                                    "connection_id": {
-                                        "type": "string",
-                                        "description": "Identifier for the connection"
-                                    },
-                                    "table": {
-                                        "type": "string",
-                                        "description": "Table name"
-                                    },
-                                    "where": {
-                                        "type": "object",
-                                        "description": "Where conditions"
-                                    }
-                                },
-                                "required": ["connection_id", "table", "where"]
-                            }
-                        },
-                        
-                        # Schema Management
-                        "list_tables": {
-                            "description": "List all tables in a database",
-                            "input_schema": {
-                                "type": "object",
-                                "properties": {
-                                    "connection_id": {
-                                        "type": "string",
-                                        "description": "Identifier for the connection"
-                                    }
-                                },
-                                "required": ["connection_id"]
-                            }
-                        },
-                        "get_table_schema": {
-                            "description": "Get the schema for a table",
-                            "input_schema": {
-                                "type": "object",
-                                "properties": {
-                                    "connection_id": {
-                                        "type": "string",
-                                        "description": "Identifier for the connection"
-                                    },
-                                    "table": {
-                                        "type": "string",
-                                        "description": "Table name"
-                                    }
-                                },
-                                "required": ["connection_id", "table"]
-                            }
-                        },
-                        "create_table": {
-                            "description": "Create a new table",
-                            "input_schema": {
-                                "type": "object",
-                                "properties": {
-                                    "connection_id": {
-                                        "type": "string",
-                                        "description": "Identifier for the connection"
-                                    },
-                                    "table": {
-                                        "type": "string",
-                                        "description": "Table name"
-                                    },
-                                    "columns": {
-                                        "type": "array",
-                                        "description": "Column definitions"
-                                    }
-                                },
-                                "required": ["connection_id", "table", "columns"]
-                            }
-                        },
-                        "drop_table": {
-                            "description": "Drop a table",
-                            "input_schema": {
-                                "type": "object",
-                                "properties": {
-                                    "connection_id": {
-                                        "type": "string",
-                                        "description": "Identifier for the connection"
-                                    },
-                                    "table": {
-                                        "type": "string",
-                                        "description": "Table name"
-                                    }
-                                },
-                                "required": ["connection_id", "table"]
-                            }
-                        },
-                        "create_index": {
-                            "description": "Create an index on a table",
-                            "input_schema": {
-                                "type": "object",
-                                "properties": {
-                                    "connection_id": {
-                                        "type": "string",
-                                        "description": "Identifier for the connection"
-                                    },
-                                    "table": {
-                                        "type": "string",
-                                        "description": "Table name"
-                                    },
-                                    "index_name": {
-                                        "type": "string",
-                                        "description": "Index name"
-                                    },
-                                    "columns": {
-                                        "type": "array",
-                                        "description": "Columns to include in the index"
-                                    },
-                                    "unique": {
-                                        "type": "boolean",
-                                        "description": "Whether the index should enforce uniqueness"
-                                    }
-                                },
-                                "required": ["connection_id", "table", "index_name", "columns"]
-                            }
-                        },
-                        "drop_index": {
-                            "description": "Drop an index",
-                            "input_schema": {
-                                "type": "object",
-                                "properties": {
-                                    "connection_id": {
-                                        "type": "string",
-                                        "description": "Identifier for the connection"
-                                    },
-                                    "index_name": {
-                                        "type": "string",
-                                        "description": "Index name"
-                                    }
-                                },
-                                "required": ["connection_id", "index_name"]
-                            }
-                        },
-                        "alter_table": {
-                            "description": "Alter a table structure",
-                            "input_schema": {
-                                "type": "object",
-                                "properties": {
-                                    "connection_id": {
-                                        "type": "string",
-                                        "description": "Identifier for the connection"
-                                    },
-                                    "table": {
-                                        "type": "string",
-                                        "description": "Table name"
-                                    },
-                                    "operations": {
-                                        "type": "array",
-                                        "description": "Alteration operations"
-                                    }
-                                },
-                                "required": ["connection_id", "table", "operations"]
-                            }
-                        },
-                        
-                        # Transaction Management
-                        "begin_transaction": {
-                            "description": "Begin a transaction",
-                            "input_schema": {
-                                "type": "object",
-                                "properties": {
-                                    "connection_id": {
-                                        "type": "string",
-                                        "description": "Identifier for the connection"
-                                    }
-                                },
-                                "required": ["connection_id"]
-                            }
-                        },
-                        "commit_transaction": {
-                            "description": "Commit a transaction",
-                            "input_schema": {
-                                "type": "object",
-                                "properties": {
-                                    "connection_id": {
-                                        "type": "string",
-                                        "description": "Identifier for the connection"
-                                    }
-                                },
-                                "required": ["connection_id"]
-                            }
-                        },
-                        "rollback_transaction": {
-                            "description": "Rollback a transaction",
-                            "input_schema": {
-                                "type": "object",
-                                "properties": {
-                                    "connection_id": {
-                                        "type": "string",
-                                        "description": "Identifier for the connection"
-                                    }
-                                },
-                                "required": ["connection_id"]
-                            }
-                        }
-                    }
-                }
-            }
-        )
-
+        # Create FastMCP server
+        mcp = FastMCP("db-mcp-server")
+        
         # Create the database MCP server
-        db_server = DatabaseMcpServer(sdk_server)
+        db_server = DatabaseMcpServer()
         
-        # Set up stdio transport for the MCP server
-        transport = StdioServerTransport()
+        # Register tools using decorators
+        @mcp.tool()
+        def add_connection(connection_id: str, type: str, config_path: str = None) -> dict:
+            """Add a new database connection."""
+            try:
+                result = db_server.add_connection(connection_id, type, config_path)
+                return {"success": True, "message": result}
+            except Exception as e:
+                return {"success": False, "error": str(e)}
         
-        # Connect the server to the transport and run
+        @mcp.tool()
+        def test_connection(connection_id: str) -> dict:
+            """Test a database connection."""
+            try:
+                result = db_server.test_connection(connection_id)
+                return {"success": True, "result": result}
+            except Exception as e:
+                return {"success": False, "error": str(e)}
+        
+        @mcp.tool()
+        def list_connections() -> dict:
+            """List all database connections."""
+            try:
+                result = db_server.list_connections()
+                return {"success": True, "connections": result}
+            except Exception as e:
+                return {"success": False, "error": str(e)}
+        
+        @mcp.tool()
+        def remove_connection(connection_id: str, config_path: str = None) -> dict:
+            """Remove a database connection."""
+            try:
+                result = db_server.remove_connection(connection_id, config_path)
+                return {"success": True, "message": result}
+            except Exception as e:
+                return {"success": False, "error": str(e)}
+        
+        @mcp.tool()
+        def execute_query(connection_id: str, query: str, params: list = None) -> dict:
+            """Execute a SQL query."""
+            try:
+                result = db_server.execute_query(connection_id, query, params)
+                return {"success": True, "result": result}
+            except Exception as e:
+                return {"success": False, "error": str(e)}
+        
+        @mcp.tool()
+        def get_records(connection_id: str, table: str, columns: list = None, where: dict = None, order_by: list = None, limit: int = None, offset: int = None) -> dict:
+            """Get records from a table."""
+            try:
+                result = db_server.get_records(connection_id, table, columns, where, order_by, limit, offset)
+                return {"success": True, "records": result}
+            except Exception as e:
+                return {"success": False, "error": str(e)}
+        
+        @mcp.tool()
+        def insert_record(connection_id: str, table: str, data: dict) -> dict:
+            """Insert a record into a table."""
+            try:
+                result = db_server.insert_record(connection_id, table, data)
+                return {"success": True, "result": result}
+            except Exception as e:
+                return {"success": False, "error": str(e)}
+        
+        @mcp.tool()
+        def update_record(connection_id: str, table: str, data: dict, where: dict) -> dict:
+            """Update records in a table."""
+            try:
+                result = db_server.update_record(connection_id, table, data, where)
+                return {"success": True, "result": result}
+            except Exception as e:
+                return {"success": False, "error": str(e)}
+        
+        @mcp.tool()
+        def delete_record(connection_id: str, table: str, where: dict) -> dict:
+            """Delete records from a table."""
+            try:
+                result = db_server.delete_record(connection_id, table, where)
+                return {"success": True, "result": result}
+            except Exception as e:
+                return {"success": False, "error": str(e)}
+        
+        @mcp.tool()
+        def list_tables(connection_id: str) -> dict:
+            """List all tables in a database."""
+            try:
+                result = db_server.list_tables(connection_id)
+                return {"success": True, "tables": result}
+            except Exception as e:
+                return {"success": False, "error": str(e)}
+        
+        @mcp.tool()
+        def get_table_schema(connection_id: str, table: str) -> dict:
+            """Get the schema for a table."""
+            try:
+                result = db_server.get_table_schema(connection_id, table)
+                return {"success": True, "schema": result}
+            except Exception as e:
+                return {"success": False, "error": str(e)}
+        
+        @mcp.tool()
+        def create_table(connection_id: str, table: str, columns: list) -> dict:
+            """Create a new table."""
+            try:
+                result = db_server.create_table(connection_id, table, columns)
+                return {"success": True, "result": result}
+            except Exception as e:
+                return {"success": False, "error": str(e)}
+        
+        @mcp.tool()
+        def drop_table(connection_id: str, table: str) -> dict:
+            """Drop a table."""
+            try:
+                result = db_server.drop_table(connection_id, table)
+                return {"success": True, "result": result}
+            except Exception as e:
+                return {"success": False, "error": str(e)}
+        
+        @mcp.tool()
+        def create_index(connection_id: str, table: str, index_name: str, columns: list, unique: bool = False) -> dict:
+            """Create an index on a table."""
+            try:
+                result = db_server.create_index(connection_id, table, index_name, columns, unique)
+                return {"success": True, "result": result}
+            except Exception as e:
+                return {"success": False, "error": str(e)}
+        
+        @mcp.tool()
+        def drop_index(connection_id: str, index_name: str) -> dict:
+            """Drop an index."""
+            try:
+                result = db_server.drop_index(connection_id, index_name)
+                return {"success": True, "result": result}
+            except Exception as e:
+                return {"success": False, "error": str(e)}
+        
+        @mcp.tool()
+        def alter_table(connection_id: str, table: str, operations: list) -> dict:
+            """Alter a table structure."""
+            try:
+                result = db_server.alter_table(connection_id, table, operations)
+                return {"success": True, "result": result}
+            except Exception as e:
+                return {"success": False, "error": str(e)}
+        
+        @mcp.tool()
+        def begin_transaction(connection_id: str) -> dict:
+            """Begin a transaction."""
+            try:
+                result = db_server.begin_transaction(connection_id)
+                return {"success": True, "result": result}
+            except Exception as e:
+                return {"success": False, "error": str(e)}
+        
+        @mcp.tool()
+        def commit_transaction(connection_id: str) -> dict:
+            """Commit a transaction."""
+            try:
+                result = db_server.commit_transaction(connection_id)
+                return {"success": True, "result": result}
+            except Exception as e:
+                return {"success": False, "error": str(e)}
+        
+        @mcp.tool()
+        def rollback_transaction(connection_id: str) -> dict:
+            """Rollback a transaction."""
+            try:
+                result = db_server.rollback_transaction(connection_id)
+                return {"success": True, "result": result}
+            except Exception as e:
+                return {"success": False, "error": str(e)}
+        
+        # Run the server using FastMCP
         logger.info("Starting database MCP server...")
-        sdk_server.connect(transport)
-        logger.info("Database MCP server running")
         
-        # Run until interrupted
         try:
-            # This will block until the connection is closed
-            sdk_server.wait_for_disconnect()
+            # Run the FastMCP server
+            mcp.run()
+            logger.info("Database MCP server stopped")
         except KeyboardInterrupt:
             logger.info("Server interrupted, shutting down...")
         finally:
             # Clean up connections
             db_server.close_all_connections()
-            sdk_server.close()
     
     except Exception as e:
         logger.error(f"Error running database MCP server: {str(e)}", exc_info=True)
